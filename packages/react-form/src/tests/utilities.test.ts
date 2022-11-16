@@ -97,18 +97,32 @@ describe('getValues()', () => {
 });
 
 describe('getDirtyValues()', () => {
-  it('returns dirty form values', () => {
-    const formValue = {
-      username: 'myUsername',
-      name: {
-        firstName: 'myFirstName',
+  const formValue = {
+    username: 'myUsername',
+    occupation: 'software developer',
+    name: {
+      firstName: 'myFirstName',
+      lastName: 'myLastName',
+      nickName: {
+        preferred: 'nick name pref',
+        optional: 'nick name optional',
       },
-      emails: [
-        {
-          work: 'work@example.com',
-        },
-      ],
-    };
+    },
+    emails: [
+      {
+        work: 'work@example.com',
+        work2: 'work2@example.com',
+      },
+      {
+        personal: 'personal@example.com',
+      },
+      {
+        hobby: 'hobby@example.com',
+      },
+    ],
+  };
+
+  it('returns dirty form values', () => {
     const fieldBag = {
       username: {...mockField(formValue.username), dirty: true},
       name: {
@@ -123,6 +137,81 @@ describe('getDirtyValues()', () => {
 
     expect(getDirtyValues(fieldBag)).toStrictEqual({
       username: formValue.username,
+    });
+  });
+
+  it('returns nested dirty form values up to two nested fields', () => {
+    const fieldBag = {
+      username: mockField(formValue.username),
+      occupation: {...mockField(formValue.occupation), dirty: true},
+      name: {
+        firstName: {...mockField(formValue.name.firstName), dirty: true},
+        lastName: mockField(formValue.name.lastName),
+      },
+      emails: [
+        {
+          personal: {...mockField(formValue.emails[1].personal), dirty: true},
+        },
+      ],
+    };
+
+    expect(getDirtyValues(fieldBag)).toStrictEqual({
+      occupation: formValue.occupation,
+      name: {
+        firstName: formValue.name.firstName,
+      },
+      emails: [
+        {
+          personal: formValue.emails[1].personal,
+        },
+      ],
+    });
+  });
+
+  it('returns deeply nested dirty form values (further nested than library supports)', () => {
+    const fieldBag = {
+      username: {...mockField(formValue.username), dirty: true},
+      name: {
+        firstName: {...mockField(formValue.name.firstName), dirty: true},
+        lastName: mockField(formValue.name.lastName),
+        nickName: {
+          preferred: mockField(formValue.name.nickName.preferred),
+          optional: {
+            ...mockField(formValue.name.nickName.optional),
+            dirty: true,
+          },
+        },
+      },
+      emails: [
+        {
+          work: mockField(formValue.emails[0].work),
+          work2: {...mockField(formValue.emails[0].work2), dirty: true},
+        },
+        {
+          personal: {...mockField(formValue.emails[1].personal), dirty: true},
+        },
+        {
+          hobby: mockField(formValue.emails[2].hobby),
+        },
+      ],
+    };
+
+    expect(getDirtyValues(fieldBag as any)).toStrictEqual({
+      username: formValue.username,
+      name: {
+        firstName: formValue.name.firstName,
+        nickName: {
+          optional: formValue.name.nickName.optional,
+        },
+      },
+      emails: [
+        {
+          work2: formValue.emails[0].work2,
+        },
+        {
+          personal: formValue.emails[1].personal,
+        },
+      ],
     });
   });
 });
